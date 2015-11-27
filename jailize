@@ -58,17 +58,20 @@ do
   echo $i
   binAddr=$(which $i)
   if [[ $? = 0 ]]; then
-    printf "\033[32m cp $binAddr --> $nameDir/bin\033[0m\n"
+    printf "\033[32m cp $binAddr --> $nameDir/$binAddr\033[0m\n"
     $(mkdir -p $baseDir/$nameDir$(dirname $binAddr))
-    $(cp  $binAddr $baseDir/$nameDir$binAddr)
+    $(cp  $binAddr $baseDir/$nameDir/$binAddr)
     ldd=$(ldd $binAddr |cut -d ">" -f2|cut -d "(" -f1)
-    for l in $ldd ;do
-      if [[ -n $l ]]; then
-          $(mkdir -p $baseDir/$nameDir$(dirname $l))
-          printf "\033[32m cp $l --> $baseDir/$nameDir/$l\033[0m\n"
-          $(cp $l $baseDir/$nameDir/$l)
-      fi
-  done
+    $(ldd $binAddr &>/dev/null)
+    if [[ $? = 0 ]];then
+      for l in $ldd ;do
+        if [[ -n $l ]]; then
+            $(mkdir -p $baseDir/$nameDir$(dirname $l))
+            printf "\033[32m cp $l --> $baseDir/$nameDir/$l\033[0m\n"
+            $(cp $l $baseDir/$nameDir/$l)
+        fi
+      done
+    fi
   else
     printf "\033[31m$i cannot be found You may need to copy it manually\033[0m
 Hit enter to continue or ctrl+c to quit script\n"
@@ -145,4 +148,4 @@ read
 dirMake
 printf "dirs succesfully created continuing to copy binaries\n"
 cpBins
-echo "Jail is ready. you can go into jail by typing sudo chroot jailName"
+echo "Jail is ready. you can go into jail by typing sudo chroot $baseDir/$nameDir"
