@@ -32,6 +32,24 @@ reqinp(){
       exit 1; fi
 }
 ################
+####add file####
+addFile(){
+  if [[ -n $1 && -e $1 ]] ; then
+    if [[ ! -d $baseDir/$nameDir ]]
+      then
+       printf "\033[31mno jail named $baseDir/$nameDir\033[0m\n"
+       exit 1
+     fi
+    printf "\033[36mcopying $1 into $baseDir/$nameDir/$1\033[0m\n"
+      $(mkdir -p $baseDir/$nameDir/$(dirname $1))
+      $(cp $1 $baseDir/$nameDir/$1)
+    exit 0
+    else
+    printf "\033[31m$1 : no such file or directory\033[0m\n"
+    exit 1
+  fi
+}
+################
 #####cp bins#####
 cpBins(){
   printf "copying binaries and dependencies\n"
@@ -47,8 +65,8 @@ do
     for l in $ldd ;do
       if [[ -n $l ]]; then
           $(mkdir -p $baseDir/$nameDir$(dirname $l))
-          printf "\033[32m cp $l --> $baseDir/$nameDir$l\033[0m\n"
-          $(cp $l $baseDir/$nameDir/.$l)
+          printf "\033[32m cp $l --> $baseDir/$nameDir/$l\033[0m\n"
+          $(cp $l $baseDir/$nameDir/$l)
       fi
   done
   else
@@ -67,27 +85,28 @@ while [[ -n $1 ]];do
      exit 1
    fi
 case $1 in
-  -h)
-  params=("-n" "--name" "-d" "-b" "-a" "--add-rec" "-h")
-  printf "\nCreate Chroot Jails
-\nUsage jailize.sh [options]
-  Options
-    %s            name of the folder default=jail
-    %s            same as n oprion but more verbose
-    %s            Base directory if no given current working directory is default
-    %s            Whitespace seperated binary list string to put each with dependent libraries into jails
-          default value is 'su ls rm mv bash'
-    %s            Append a binary to include into binary list
-          format :  jailize -a 'bin1 bin2 bin3'
-    %s            Show this help text\n\n" ${params[@]}
-    exit 1
+  -h|--help)
+echo "Create Chroot Jails"
+echo "Usage : jailize [options]"
+echo "Options:"
+echo "-a,--append-binary Append a binary to include into binary list"
+echo "-b,--binaries      Whitespace seperated binary list string to put each with dependent libraries into jails"
+echo "-d,--dirname       Base directory if no given current working directory is default"
+echo "-n,--name          name of the folder default=jail"
+echo "--add-file         add libraries, files or entire folders into the jail once a time"
+echo "                usage: jailize -n jailName --add-file file [jail location]"
+echo "                *jail location is optional"
+echo "                *name is optional if not given searches for folder named jail"
+echo "-h,--help          Show this help text"
+exit 0
     ;;
-    -n|--name|-name)
+    -n|--name)
       reqinp $1 $2
       nameDir=$2
       shift 2
       ;;
-    -d)
+    -d|--dirname)
+    reqinp $1 $2
      if [[ -d $2 ]]; then
       baseDir=$2
       shift 2
@@ -96,14 +115,17 @@ case $1 in
       exit 1
     fi
     ;;
-    -a)
+    -a|--append)
     reqinp $1 $2
     bins+=" $2";shift 2 ;;
-    -b)
-    if [[ -z $2  || $2 =~ ^\-.* ]];then
-      printf "\033[31m$1 flag requires an argument\033[0m\n"
-      exit 1; fi
+    -b|--binaries)
+    reqinp $1 $2
     bins=$2;shift 2
+    ;;
+    --add-file)
+      reqinp $1 $2
+      addFlag=$2
+      shift 2
     ;;
     *)
     printf "\033[31mI dont understand what you meant with \033[7m$1\033[0m\n"
@@ -112,6 +134,7 @@ esac
 done
 ###########################
 #######Action##############
+[[ -n $addFlag ]]&& addFile $addFlag
 printf "\033[32mStarting ...\033[0m\n"
 printf "\033[36mProgram variables$reset
 Base Dir                          : $baseDir
@@ -122,3 +145,4 @@ read
 dirMake
 printf "dirs succesfully created continuing to copy binaries\n"
 cpBins
+echo "Jail is ready. you can go into jail by typing sudo chroot jailName"
