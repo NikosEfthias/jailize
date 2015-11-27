@@ -1,0 +1,2 @@
+Add skip-existing-files support for -a,--append
+Add automated mknod support
