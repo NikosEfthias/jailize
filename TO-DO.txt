@@ -1,2 +1,3 @@
 Add skip-existing-files support for -a,--append
 Add automated mknod support
+Add optionality to coloring output for better interractivity with other programmes
