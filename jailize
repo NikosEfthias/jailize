@@ -50,7 +50,33 @@ addFile(){
   fi
 }
 ################
-#####cp bins#####
+#####cp libs####
+cplibs(){
+  if [[ ! -d $nameDir ]];then
+    echo "!no jail named $nameDir please specify a jail name with -n parameter"
+    exit 1
+  fi
+  echo "copying libs..."
+for i in $1 ; do
+binAddr=$(which $i)
+if [[ $? = 0 ]]; then
+ldd=$(ldd $binAddr |cut -d ">" -f2|cut -d "(" -f1)
+    $(ldd $binAddr &>/dev/null)
+    if [[ $? = 0 ]];then
+      for l in $ldd ;do
+        if [[ -n $l ]]; then
+            $(mkdir -p $baseDir/$nameDir$(dirname $l))
+            printf "\033[32m cp $l --> $baseDir/$nameDir/$l\033[0m\n"
+            $(cp $l $baseDir/$nameDir/$l)
+        fi
+      done
+fi
+fi
+done
+exit 0
+}
+################
+#####cp bins####
 cpBins(){
   printf "copying binaries and dependencies\n"
 for i in $bins
@@ -95,6 +121,7 @@ echo "Options:"
 echo "-a,--append-binary Append a binary to include into binary list"
 echo "-b,--binaries      Whitespace seperated binary list string to put each with dependent libraries into jails"
 echo "-d,--dirname       Base directory if no given current working directory is default"
+echo "-j,--just-libs     Copy only needed libs not the binary"
 echo "-n,--name          name of the folder default=jail"
 echo "--add-file         add libraries, files or entire folders into the jail once a time"
 echo "                usage: jailize -n jailName --add-file file [jail location]"
@@ -130,6 +157,11 @@ exit 0
       addFlag=$2
       shift 2
     ;;
+    -j|--just-libs)
+    reqinp $1 $2
+    jbins=$2
+    shift 2
+    ;;
     *)
     printf "\033[31mI dont understand what you meant with \033[7m$1\033[0m\n"
     exit 1 ;;
@@ -138,6 +170,7 @@ done
 ###########################
 #######Action##############
 [[ -n $addFlag ]]&& addFile $addFlag
+[[ -n $jbins ]]&& cplibs $jbins
 printf "\033[32mStarting ...\033[0m\n"
 printf "\033[36mProgram variables$reset
 Base Dir                          : $baseDir
